@@ -1,18 +1,3 @@
-import express from "express";
-import multer from "multer";
-import cors from "cors";
-
-const app = express();
-const upload = multer();
-
-app.use(cors());
-
-const API_KEY = process.env.API_KEY;
-
-app.get("/", (req, res) => {
-  res.send("AIToolsFY Backend Running 🚀");
-});
-
 app.post("/pdf-to-word", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
@@ -28,22 +13,24 @@ app.post("/pdf-to-word", upload.single("file"), async (req, res) => {
 
     const response = await fetch(
       `https://v2.convertapi.com/convert/pdf/to/docx?Secret=${API_KEY}`,
-      {
-        method: "POST",
-        body: formData
-      }
+      { method: "POST", body: formData }
     );
 
     const result = await response.json();
-    console.log("ConvertAPI response:", result);
+    console.log("FULL ConvertAPI response:", JSON.stringify(result));
 
-    if (!result.Files || !result.Files[0].Url) {
-      return res.status(500).send("Conversion failed");
+    // 🔥 SAFELY extract file URL
+    if (!result.Files || result.Files.length === 0) {
+      return res.status(500).send("No files returned from ConvertAPI");
     }
 
-    const fileUrl = result.Files[0].Url;
+    const fileObj = result.Files[0];
 
-    const fileRes = await fetch(fileUrl);
+    if (!fileObj.Url) {
+      return res.status(500).send("No URL in ConvertAPI response");
+    }
+
+    const fileRes = await fetch(fileObj.Url);
     const buffer = await fileRes.arrayBuffer();
 
     res.set({
@@ -52,16 +39,10 @@ app.post("/pdf-to-word", upload.single("file"), async (req, res) => {
       "Content-Disposition": "attachment; filename=converted.docx"
     });
 
-    res.send(Buffer.from(buffer));
+    return res.send(Buffer.from(buffer));
 
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
+    console.error("SERVER ERROR:", err);
+    return res.status(500).send("Server error");
   }
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
 });
