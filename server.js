@@ -1,6 +1,5 @@
 import express from "express";
 import multer from "multer";
-import FormData from "form-data";
 import cors from "cors";
 
 const app = express();
@@ -20,16 +19,23 @@ app.post("/pdf-to-word", upload.single("file"), async (req, res) => {
       return res.status(400).send("No file uploaded");
     }
 
-    const form = new FormData();
-    form.append("File", req.file.buffer, req.file.originalname);
-
-    const response = await fetch(
-      "https://v2.convertapi.com/convert/pdf/to/docx?Secret=" + API_KEY,
-      { method: "POST", body: form }
+    const formData = new FormData();
+    formData.append(
+      "File",
+      new Blob([req.file.buffer]),
+      req.file.originalname
     );
 
-  const result = await response.json();
-console.log("ConvertAPI response:", result);
+    const response = await fetch(
+      `https://v2.convertapi.com/convert/pdf/to/docx?Secret=${API_KEY}`,
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    const result = await response.json();
+    console.log("ConvertAPI response:", result);
 
     if (!result.Files || !result.Files[0].Url) {
       return res.status(500).send("Conversion failed");
@@ -47,6 +53,7 @@ console.log("ConvertAPI response:", result);
     });
 
     res.send(Buffer.from(buffer));
+
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
