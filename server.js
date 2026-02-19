@@ -28,7 +28,8 @@ app.post("/pdf-to-word", upload.single("file"), async (req, res) => {
       { method: "POST", body: form }
     );
 
-    const result = await response.json();
+  const result = await response.json();
+console.log("ConvertAPI response:", result);
 
     if (!result.Files || !result.Files[0].Url) {
       return res.status(500).send("Conversion failed");
